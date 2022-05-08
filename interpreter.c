@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <memory.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-long long token;
+int token;
 char *src, *old_src;
 long long poolsize;
 int line;
@@ -44,7 +48,7 @@ int main(int argc, char **argv) {
 	}
 
 	if(!(src = old_src = malloc(poolsize))) {
-		printf("could not malloc(%d) for source area\n", poolsize);
+		printf("could not malloc(%lld) for source area\n", poolsize);
 		return 1;
 	}
 
