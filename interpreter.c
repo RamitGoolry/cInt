@@ -3,15 +3,17 @@
 #include <string.h>
 #include <memory.h>
 
-#define int long long
-
-int token;
+long long token;
 char *src, *old_src;
-int poolsize;
+long long poolsize;
 int line;
 
 void next() {
 	token = *src++;
+}
+
+void expression(int level) {
+	// do nothing for now
 }
 
 void program() {
