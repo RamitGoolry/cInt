@@ -12,6 +12,14 @@ char *src, *old_src;
 long long poolsize;
 int line;
 
+int *text,      // Text segment
+	*old_text;  // for dump text segment
+int * stack;    // Stack
+char *data;     // Data segment
+
+// Virtual registers
+int *pc, *bp, *sp, ax, cycle;
+
 void next() {
 	token = *src++;
 }
@@ -24,7 +32,7 @@ void program() {
 	next();
 
 	while (token > 0) {
-		printf("token is %c\n", token);
+		printf("%c", token);
 		next();
 	}
 }
@@ -59,6 +67,29 @@ int main(int argc, char **argv) {
 
 	src[i] = 0;
 	close(fd);
+
+	// Allocate memory for text, stack, and data
+	if (!(text = old_text = malloc(poolsize))) {
+		printf("could not malloc(%lld) for text area\n", poolsize);
+		return 1;
+	}
+
+	if(!data = malloc(poolsize)) {
+		printf("could not malloc(%lld) for data area\n", poolsize);
+		return 1;
+	}
+
+	if(!stack = malloc(poolsize)) {
+		printf("could not malloc(%lld) for stack area\n", poolsize);
+		return 1;
+	}
+
+	memset(text, 0, poolsize);
+	memset(data, 0, poolsize);
+	memset(stack, 0, poolsize);
+
+	bp = sp = (int *) ((int) stack + poolsize);
+	ax = 0;
 
 	program();
 	return eval();
