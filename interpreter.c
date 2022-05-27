@@ -121,7 +121,7 @@ void next() {
 		}
 		else if(token == '"' || token == '\'') {
 			// String Literal
-			// Parse String Literal, currently only supporting \n as escaped character.
+			// Parse String Literal, currently only supporting \n and \t as escaped character.
 			// Store Literal into data
 			
 			last_pos = data;
@@ -133,7 +133,9 @@ void next() {
 
 					if(token_val == 'n') {
 						token_val = '\n';
-					} // TODO support other escape sequences - start with \t
+					} else if (token_val == 't') {
+						token_val = '\t';
+					}
 				}
 				if(token == '"') {
 					*data++ = token_val;
@@ -521,16 +523,16 @@ int32_t main(int32_t argc, char **argv) {
 	bp = sp = (int *) ((int) stack + poolsize);
 	ax = 0;
 
-	i = 0;
-    text[i++] = IMM;
-    text[i++] = 10;
-    text[i++] = PUSH;
-    text[i++] = IMM;
-    text[i++] = 20;
-    text[i++] = ADD;
-    text[i++] = PUSH;
-    text[i++] = EXIT;
-    pc = text;
+	/*i = 0;*/
+    /*text[i++] = IMM;*/
+    /*text[i++] = 10;*/
+    /*text[i++] = PUSH;*/
+    /*text[i++] = IMM;*/
+    /*text[i++] = 20;*/
+    /*text[i++] = ADD;*/
+    /*text[i++] = PUSH;*/
+    /*text[i++] = EXIT;*/
+    /*pc = text;*/
 
 	program();
 	return eval();
