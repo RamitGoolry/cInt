@@ -39,7 +39,7 @@ void program() {
 	next();
 
 	while (token > 0) {
-		printf("%c", token);
+		/*printf("%c", (char) token);*/
 		next();
 	}
 }
@@ -169,7 +169,7 @@ int eval() {
 		// Built in Instructions
 		
 		else if (op == EXIT) {  // Exit the program
-			printf("exit(%d)", *sp);
+			printf("exit(%lld)", *sp);
 			return *sp;
 		}
 		else if (op == OPEN) { // Open File
@@ -196,7 +196,7 @@ int eval() {
 		}
 
 		else {
-			printf("Unknown opcode: %d\n", op);
+			printf("Unknown opcode: %lld\n", op);
 			return -1;
 		}
 	}
@@ -224,7 +224,7 @@ int32_t main(int32_t argc, char **argv) {
 	}
 
 	if((i = read(fd, src, poolsize - 1)) <= 0) {
-		printf("read() returned %d\n", i);
+		printf("read() returned %lld\n", i);
 		return 1;
 	}
 
@@ -253,6 +253,17 @@ int32_t main(int32_t argc, char **argv) {
 
 	bp = sp = (int *) ((int) stack + poolsize);
 	ax = 0;
+
+	i = 0;
+    text[i++] = IMM;
+    text[i++] = 10;
+    text[i++] = PUSH;
+    text[i++] = IMM;
+    text[i++] = 20;
+    text[i++] = ADD;
+    text[i++] = PUSH;
+    text[i++] = EXIT;
+    pc = text;
 
 	program();
 	return eval();
