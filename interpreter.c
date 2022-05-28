@@ -27,8 +27,277 @@ enum {  LEA, IMM, JMP, CALL, JZ, JNZ, ENT, ADJ, LEV, LI, LC, SI, SC, PUSH,
 		OR, XOR, AND, EQ, NE, LT, GT, LE, GE, SHL, SHR, ADD, SUB, MUL, DIV, MOD,
 		OPEN, READ, CLOS, PRTF, MALC, MSET, MCMP, EXIT };
 
+// Tokens and classes for lexical analysis
+enum {
+	Num = 128, Fun, Sys, Glo, Loc, Id,
+	Char, Else, Enum, If, Int, Return, Sizeof, While,
+	Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr,
+	Add, Sub, Mul, Div, Mod, Inc, Dec, Brak
+};
+
+int token_val;         // Value of current token
+int *current_id,       // current parsed ID
+	*symbols;          // Symbol table
+
+// fields of identifier
+enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};
+
 void next() {
-	token = *src++;
+	char* last_pos;
+	int hash;
+
+	while ((token = *src)) {
+		++src;
+		// parse token
+	
+		if(token == ' ' || token == '\t'); // Skip whitespaces
+		else if(token == '\n') {           // New line
+			line++;
+		}
+		else if(token == '#') {
+			// Macros - Maybe TODO in the future, but currently not supported
+			while(*src != 0 && *src != '\n')
+				++src;
+		}
+		else if((token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z') || 
+			(token == '_')) {
+			// Identifier
+			
+			last_pos = src - 1;
+			hash = token;
+
+			while((*src >= 'a' && *src <= 'z') || (*src >= 'A' && *src <= 'Z') ||
+					(*src >= '0' && *src <= '9') || *src == '_') {
+				hash = (hash * 147) + *src;
+				src++;
+			}
+
+			// Look for existing identifier through linear search
+			current_id = symbols;
+
+			while(current_id[Token]) {
+				if(current_id[Hash] == hash && !memcmp((char *) current_id[Name], last_pos, src - last_pos)) {
+					// found identifier, return
+					token = current_id[Token];
+					return;
+				}
+				current_id += IdSize;
+			}
+
+			// Not found, store new ID
+			current_id[Name] = (int) last_pos;
+			current_id[Hash] = hash;
+			token = current_id[Token] = Id;
+			return;
+		}
+		else if(token >= '0' && token <= '9') {
+			// Numeric literal
+			
+			token_val = token - '0';
+
+			if(token_val > 0) { // Decimal
+				while (*src >= '0' && *src <= '9') {
+					token_val = (token_val * 10) + (*src - '0');
+					src++;
+				}
+			} else {
+				if(*src == 'x' || *src == 'X') { // Hexadecimal
+					token = *++src;
+					while ((token >= '0' && token <= '9') || (token >= 'a' && token <= 'f') ||
+							(token >= 'A' && token <= 'F')) {
+						token_val = (token_val * 16) + (token & 15) + (token >= 'A' ? 9 : 0);
+						token = *++src;
+					}
+				} else { // Octal
+					while (*src >= '0' && *src <= '7') {
+						token_val = (token_val * 8) + (*src - '0');
+						src++;
+					}
+				}
+			}
+
+			token = Num;
+			return;
+		}
+		else if(token == '"' || token == '\'') {
+			// String Literal
+			// Parse String Literal, currently only supporting \n and \t as escaped character.
+			// Store Literal into data
+			
+			last_pos = data;
+			while(*src != 0 && *src != token) {
+				token_val = *src++;
+				if(token_val == '\\') {
+					// Escape sequence
+					token_val = *src++;
+
+					if(token_val == 'n') {
+						token_val = '\n';
+					} else if (token_val == 't') {
+						token_val = '\t';
+					}
+				}
+				if(token == '"') {
+					*data++ = token_val;
+				}
+			}
+
+			src++;
+			// If it is a single character, return Num token
+			if (token == '"') {
+				token_val = (int) last_pos;
+			} else {
+				token = Num;
+			}
+
+			return;
+		}
+		else if (token == '/') {
+			// // or /
+			if(*src == '/') {
+				// Single Line comment, skip to end of line
+				while (*src != 0 && *src != '\n')
+					++src;
+			}
+			// TODO support multiline comments
+			// else if(*src == '*') {
+			// }
+			else {
+				// Division operator
+				token = Div;
+				return;
+			}
+		}
+		else if (token == '=') {
+			// == or =
+			if (*src == '=') {
+				// Equality operator
+				src++;
+				token = Eq;
+			} else {
+				// Assignment operator
+				token = Assign;
+			}
+			return;
+		}
+		else if (token == '+') {
+			// ++ or +
+			if(*src == '+') {
+				// Increment operator
+				src++;
+				token = Inc;
+			} else {
+				// Addition operator
+				token = Add;
+			}
+			return;
+		}
+		else if (token == '-') {
+			// -- or -
+			if (*src == '-') {
+				// Decrement operator
+				src++;
+				token = Dec;
+			} else {
+				// Subtraction operator
+				token = Sub;
+			}
+			return;
+		}
+		else if (token == '!') {
+			// !=
+			if (*src == '=') {
+				// Not equal operator
+				src++;
+				token = Ne;
+			}
+			// TODO Support logical not
+			return;
+		}
+		else if (token == '<') {
+			// <=, << or <
+			if (*src == '=') {
+				// Less than or equal operator
+				src++;
+				token = Le;
+			} else if (*src == '<') {
+				// Left Shift
+				src++;
+				token = Shl;
+			} else {
+				// Less than operator
+				token = Lt;
+			}
+			return;
+		}
+		else if (token == '>') {
+			// >=, >> or >
+			if(*src == '=') {
+				// Greater than or equal operator
+				src++;
+				token = Ge;
+			} else if (*src == '>') {
+				// Right Shift
+				src++;
+				token = Shr;
+			} else {
+				// Greater than operator
+				token = Gt;
+			}
+			return;
+		}
+		else if (token == '|') {
+			// || or |
+			if(*src == '|') {
+				// Logical or operator
+				src++;
+				token = Lor;
+			} else {
+				// Bitwise or operator
+				token = Or;
+			}
+			return;
+		}
+		else if (token == '&') {
+			// && or *
+			if(*src == '&') {
+				// Logical and
+				src++;
+				token = Lan;
+			} else {
+				// Bitwise and
+				token = And;
+			}
+			return;
+		}
+		else if (token == '^') {
+			token = Xor;
+			return;
+		}
+		else if (token == '%') {
+			token = '%';
+			return;
+		}
+		else if (token == '*') {
+			token = Mul;
+			return;
+		}
+		else if (token == '[') {
+			token = Brak;
+			return;
+		}
+		else if (token == '?') {
+			token = Cond;
+			return;
+		}
+		else if (token == '~' || token == ';' || token == '{' || token == '}' || 
+				token == '(' || token == ')' || token == ']' || token == ',' ||
+				token == ':') {
+			// directly return character as token
+			return;
+		}
+	}
+	return;
 }
 
 void expression(int level) {
@@ -204,6 +473,10 @@ int eval() {
 	return 0;
 }
 
+// types of variables / functions
+enum { CHAR, INT, PTR };
+int *idmain; // the main function
+
 int32_t main(int32_t argc, char **argv) {
 	int i, fd;
 
@@ -254,16 +527,28 @@ int32_t main(int32_t argc, char **argv) {
 	bp = sp = (int *) ((int) stack + poolsize);
 	ax = 0;
 
-	i = 0;
-    text[i++] = IMM;
-    text[i++] = 10;
-    text[i++] = PUSH;
-    text[i++] = IMM;
-    text[i++] = 20;
-    text[i++] = ADD;
-    text[i++] = PUSH;
-    text[i++] = EXIT;
-    pc = text;
+	src = "char else enum if int return sizeof while open read close "
+		"printf malloc memset memcmp exit void main";
+
+	// Add keywords to symbol table
+	
+	i = Char;
+	while (i <= While) {
+		next();
+		current_id[Token] = i++;
+	}
+
+	// add library to symbol table
+	i = OPEN;
+	while (i <= EXIT) {
+		next();
+		current_id[Class] = Sys;
+		current_id[Type] = INT;
+		current_id[Value] = i++;
+	}
+
+	next(); current_id[Token] = Char;  // handle void type
+	next(); idmain = current_id;       // keep track of main function
 
 	program();
 	return eval();
