@@ -473,6 +473,10 @@ int eval() {
 	return 0;
 }
 
+// types of variables / functions
+enum { CHAR, INT, PTR };
+int *idmain; // the main function
+
 int32_t main(int32_t argc, char **argv) {
 	int i, fd;
 
@@ -523,16 +527,28 @@ int32_t main(int32_t argc, char **argv) {
 	bp = sp = (int *) ((int) stack + poolsize);
 	ax = 0;
 
-	/*i = 0;*/
-    /*text[i++] = IMM;*/
-    /*text[i++] = 10;*/
-    /*text[i++] = PUSH;*/
-    /*text[i++] = IMM;*/
-    /*text[i++] = 20;*/
-    /*text[i++] = ADD;*/
-    /*text[i++] = PUSH;*/
-    /*text[i++] = EXIT;*/
-    /*pc = text;*/
+	src = "char else enum if int return sizeof while open read close "
+		"printf malloc memset memcmp exit void main";
+
+	// Add keywords to symbol table
+	
+	i = Char;
+	while (i <= While) {
+		next();
+		current_id[Token] = i++;
+	}
+
+	// add library to symbol table
+	i = OPEN;
+	while (i <= EXIT) {
+		next();
+		current_id[Class] = Sys;
+		current_id[Type] = INT;
+		current_id[Value] = i++;
+	}
+
+	next(); current_id[Token] = Char;  // handle void type
+	next(); idmain = current_id;       // keep track of main function
 
 	program();
 	return eval();
