@@ -42,6 +42,10 @@ int *current_id,       // current parsed ID
 // fields of identifier
 enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};
 
+// types of variables / functions
+enum { CHAR, INT, PTR };
+int *idmain; // the main function
+
 void next() {
 	char* last_pos;
 	int hash;
@@ -304,12 +308,141 @@ void expression(int level) {
 	// do nothing for now
 }
 
+void match(int tk) {
+	if (token == tk) {
+		next();
+	} else {
+		printf("Error at line %d : Expected token %d, got %d\n", line, tk, token);
+		exit(-1);
+	}
+}
+
+void enum_declaration() {
+	// parse enum [id] {a = 1, b = 2, c = 3, ...}
+	
+	int i;
+	i = 0;
+
+	while (token != '}') {
+		if (token != Id) {
+			printf("Error at line %d: Bad enum identifier\n", line);
+			exit(-1);
+		}
+		next();
+
+		if(token == Assign) {
+			next();
+
+			if (token != Num) {
+				printf("Error at line %d: Bad enum initialization\n", line);
+				exit(-1);
+			}
+
+			i = token_val;
+			next();
+		}
+
+		current_id[Class] = Num;
+		current_id[Type] = INT;
+		current_id[Value] = i++;
+
+		if (token == ',') {
+			next();
+		}
+	}
+}
+
+int basetype;          // The type of a declaration, global for convenience
+int expr_type;         // The type of an expression
+
+void global_declaration() {
+	// global_declaration ::= enum_decl | variable_decl | function_decl
+	//
+	// enum_decl ::= 'enum' [id] '{' id ['=' 'num'] {',' id ['=' 'num']} '}'
+	//
+	// variable_decl ::= type {'*'} id {',' {'*'} id } ';'
+	//
+	// function_decl ::= type {'*'} id '(' parameter_decl ')' '{' body_decl '}'
+	
+	int type; // tmp, actual type for variable
+	int i;    // tmp
+
+	basetype = INT;
+
+	// parse enum
+	if (token == Enum) {
+		// enum [id] { a = 10, b = 20, ... }
+		
+		match(Enum);
+
+		if(token != '{') {
+			match(Id); // skip the [id] part
+		}
+		if(token == '{') {
+			match('{');
+			enum_declaration();
+			match('}');
+		}
+
+		match(';');
+		return;
+	}
+
+	// parse type information
+	if(token == Int) {
+		match(Int);
+	}
+	else if (token == Char) {
+		match(Char);
+		basetype = CHAR;
+	}
+
+	// parse comma separated variable declaration
+	while (token != ';' && token != '}') {
+		type = basetype;
+
+		// parse pointer
+		while (token == Mul) {
+			match(Mul);
+			type = type + PTR;
+		}
+
+		if (token != Id) {
+			// invalid declaration
+			printf("Error at line %d: Expected identifier\n", line);
+			exit(-1);
+		}
+		if (current_id[Class]) {
+			// identifier exists
+			printf("Error at line %d : Duplicate global declaration\n", line);
+			exit(-1);
+		}
+		match(Id);
+		current_id[Type] = type;
+
+		if (token == '(') {
+			current_id[Class] = Fun;
+			current_id[Value] = (int) (text + 1);
+			function_declaration();
+		} else {
+			// variable declaration
+			current_id[Class] = Glo;   // Global variable
+			current_id[Value] = (int) data;
+			data = data + sizeof(int);
+		}
+
+		if (token == ',') {
+			match(',');
+		}
+	}
+	next();
+}
+
 void program() {
 	next();
 
 	while (token > 0) {
-		/*printf("%c", (char) token);*/
-		next();
+		global_declaration();
 	}
 }
 
@@ -473,9 +606,6 @@ int eval() {
 	return 0;
 }
 
-// types of variables / functions
-enum { CHAR, INT, PTR };
-int *idmain; // the main function
 
 int32_t main(int32_t argc, char **argv) {
 	int i, fd;
