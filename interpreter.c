@@ -312,7 +312,7 @@ void match(int tk) {
 	if (token == tk) {
 		next();
 	} else {
-		printf("Error at line %d : Expected token %d, got %d\n", line, tk, token);
+		printf("Error at line %lld : Expected token %lld, got %lld\n", line, tk, token);
 		exit(-1);
 	}
 }
@@ -325,7 +325,7 @@ void enum_declaration() {
 
 	while (token != '}') {
 		if (token != Id) {
-			printf("Error at line %d: Bad enum identifier\n", line);
+			printf("Error at line %lld: Bad enum identifier\n", line);
 			exit(-1);
 		}
 		next();
@@ -334,7 +334,7 @@ void enum_declaration() {
 			next();
 
 			if (token != Num) {
-				printf("Error at line %d: Bad enum initialization\n", line);
+				printf("Error at line %lld: Bad enum initialization\n", line);
 				exit(-1);
 			}
 
@@ -350,6 +350,9 @@ void enum_declaration() {
 			next();
 		}
 	}
+}
+
+void function_declaration() {
 }
 
 int basetype;          // The type of a declaration, global for convenience
@@ -409,12 +412,12 @@ void global_declaration() {
 
 		if (token != Id) {
 			// invalid declaration
-			printf("Error at line %d: Expected identifier\n", line);
+			printf("Error at line %lld: Expected identifier\n", line);
 			exit(-1);
 		}
 		if (current_id[Class]) {
 			// identifier exists
-			printf("Error at line %d : Duplicate global declaration\n", line);
+			printf("Error at line %lld : Duplicate global declaration\n", line);
 			exit(-1);
 		}
 		match(Id);
