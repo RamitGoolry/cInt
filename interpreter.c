@@ -49,6 +49,8 @@ int *idmain; // the main function
 int basetype;          // The type of a declaration, global for convenience
 int expr_type;         // The type of an expression
 
+int index_of_bp;
+
 void next() {
 	char* last_pos;
 	int hash;
@@ -355,8 +357,6 @@ void enum_declaration() {
 	}
 }
 
-int index_of_bp;
-
 void function_parameter() {
 	int type;
 	int params;
@@ -495,7 +495,6 @@ void function_declaration() {
 		current_id += IdSize;
 	}
 }
-
 
 void global_declaration() {
 	// global_declaration ::= enum_decl | variable_decl | function_decl
@@ -747,7 +746,6 @@ int eval() {
 
 	return 0;
 }
-
 
 int32_t main(int32_t argc, char **argv) {
 	int i, fd;
