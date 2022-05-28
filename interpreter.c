@@ -46,6 +46,9 @@ enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};
 enum { CHAR, INT, PTR };
 int *idmain; // the main function
 
+int basetype;          // The type of a declaration, global for convenience
+int expr_type;         // The type of an expression
+
 void next() {
 	char* last_pos;
 	int hash;
@@ -352,11 +355,147 @@ void enum_declaration() {
 	}
 }
 
-void function_declaration() {
+int index_of_bp;
+
+void function_parameter() {
+	int type;
+	int params;
+
+	params = 0;
+
+	while (token != ')') {
+		// int name, ...
+
+		type = INT;
+		if(token == Int) {
+			match(Int);
+		} else if (token == Char) {
+			type = CHAR;
+			match(Char);
+		}
+
+		// Pointer Type
+		while (token == Mul) {
+			match(Mul);
+			type += PTR;
+		}
+
+		// Parameter Name
+		if(token != Id) {
+			printf("Error at line %lld: Bad parameter declaration\n", line);
+			exit(-1);
+		}
+		if(current_id[Class] == Loc) {
+			printf("Error at line %lld: Duplicate parameter declaration\n", line);
+			exit(-1);
+		}
+
+		match(Id);
+
+		// Store the local variable
+		current_id[BClass] = current_id[Class];
+		current_id[Class] = Loc;
+
+		current_id[BType] = current_id[Type];
+		current_id[Type] = type;
+
+		current_id[BValue] = current_id[Value];
+		current_id[Value] = params++;
+
+		if(token == ',') {
+			match(',');
+		}
+	}
+
+	index_of_bp = params + 1;
 }
 
-int basetype;          // The type of a declaration, global for convenience
-int expr_type;         // The type of an expression
+void function_body() {
+	// ... {
+	// 1. Local declarations
+	// 2. Statements
+	// }
+	
+	int pos_local;
+	int type;
+	pos_local = index_of_bp;
+
+	while(token == Int || token == Char) {
+		// Local variable declaration
+		basetype = (token == Int) ? INT : CHAR;
+		match(token);
+
+		while(token != ';') {
+			type = basetype;
+
+			while(token == Mul) {
+				match(Mul);
+				type += PTR;
+			}
+
+			if(token != Id) {
+				printf("Error at line %lld: Bad local declaration\n", line);
+				exit(-1);
+			}
+			if(current_id[Class] == Loc) {
+				printf("Error at line %lld: Duplicate local declaration\n", line);
+				exit(-1);
+			}
+			match(Id);
+
+			// Store the local variable
+			
+			current_id[BClass] = current_id[Class];
+			current_id[Class] = Loc;
+
+			current_id[BType] = current_id[Type];
+			current_id[Type] = type;
+
+			current_id[BValue] = current_id[Value];
+			current_id[Value] = ++pos_local;
+
+			if(token == ',') {
+				match(',');
+			}
+		}
+		match(';');
+	}
+
+	// Save the stack size for local variables
+	*++text = ENT;
+	*++text = pos_local - index_of_bp;
+
+	// Statements
+	while (token != '}') {
+		statement();
+	}
+
+	// Emit code for leaving subfunction
+	*++text = LEV;
+}
+
+void function_declaration() {
+	// type func_name (...) {...}
+	
+	match('(');
+	function_parameter();
+	match(')');
+
+	match('{');
+	function_body();
+	// match('}');
+	
+	current_id = symbols;
+	while(current_id[Token]) {
+		if (current_id[Class] == Loc) {
+			current_id[Class] = current_id[BClass];
+			current_id[Type]  = current_id[BType];
+			current_id[Value] = current_id[BValue];
+		}
+		current_id += IdSize;
+	}
+}
+
 
 void global_declaration() {
 	// global_declaration ::= enum_decl | variable_decl | function_decl
