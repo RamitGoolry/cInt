@@ -612,7 +612,6 @@ void global_declaration() {
 	// function_decl ::= type {'*'} id '(' parameter_decl ')' '{' body_decl '}'
 	
 	int type; // tmp, actual type for variable
-	int i;    // tmp
 
 	basetype = INT;
 
