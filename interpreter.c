@@ -357,6 +357,112 @@ void enum_declaration() {
 	}
 }
 
+void statement() {
+	// There are 8 kinds of statements here:
+	// 1. if (...) <statement> [else <statement>]
+	// 2. while (...) <statement>
+	// 3. { <statement> }
+	// 4. return ...;
+	// 5. <empty statement>;
+	// 6. <expression
+
+	int *a, *b;
+
+	if (token == If) {
+		// if (...) <statement> [else <statement>]
+		//
+		// if (...)            <cond>
+		//                     JZ a
+		//   <statement>       <statement>
+		// else                JMP b
+		//
+		// a:
+		//  <statement>       <statement>
+		// b:                 b:
+
+		match(If);
+		match('(');
+		expression(Assign);    // Parse condition
+		match(')');
+
+		// Emit code for if
+		*++text = JZ;
+		b = ++text;
+
+		statement();           // Parse statement
+		if(token == Else) {
+			match(Else);
+
+			// Emit code for JMP B;
+			*b = (int) (text + 3);
+			*++text = JMP;
+			b = ++text;
+
+			statement();       // Parse else statement
+		}
+
+		*b = (int) (text + 1);
+	}
+	else if (token == While) {
+		//
+		// a:                   a:
+		//   while (<cond>)        <cond>
+		//                         JZ b
+		//   <statement>           <statement>
+		//                         JMP a
+		// b:                   b:
+		match(While);
+
+		a = text + 1;
+
+		match('(');
+		expression(Assign);    // Parse condition
+		match(')');
+
+		// Emit code for while
+		*++text = JZ;
+		b = ++text;
+
+		statement();           // Parse statement
+
+		*++text = JMP;
+		*text  = (int) a;
+		*b = (int) (text + 1);
+	}
+	else if (token == '{') {
+		// { <statement> }
+		match('{');
+
+		while (token != '}') {
+			statement();
+		}
+
+		match('}');
+	}
+	else if (token == Return) {
+		// return [expression];
+		match(Return);
+
+		if(token != ';') {
+			expression(Assign);
+		}
+
+		match(';');
+
+		// Emit code for return
+		*++text = LEV;
+	}
+	else if (token == ';') {
+		// <empty statement>;
+		match(';');
+	}
+	else {
+		// <expression>;
+		expression(Assign);
+		match(';');
+	}
+}
+
 void function_parameter() {
 	int type;
 	int params;
