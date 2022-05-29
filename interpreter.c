@@ -309,10 +309,6 @@ void next() {
 	return;
 }
 
-void expression(int level) {
-	// do nothing for now
-}
-
 void match(int tk) {
 	if (token == tk) {
 		next();
@@ -356,6 +352,574 @@ void enum_declaration() {
 		}
 	}
 }
+
+void expression(int level) {
+	// expressions have various formats
+	// can be divided mostly into 2 parts : unit and operator
+	//
+	// We will define expressions as:
+	//
+	// 1. unit_unary ::= unit | unit unary_op | unary_op unit
+	// 2. expr ::= unit unary (bin_op unit_unary ...)
+	
+	// unit_unary()
+	int *id;
+	int tmp;
+	int *addr;
+	{
+		if(!token) {
+			printf("Error at line %lld: unexpected EOF\n", line);
+			exit(-1);
+		}
+		if(token == Num) {
+			match(Num);
+		
+			// emit code
+			*++text = IMM;
+			*++text = token_val;
+			expr_type = INT;
+		}
+		else if(token == '"') {
+			// continuous string
+			// emit code
+			
+			*++text = IMM;
+			*++text = token_val;
+
+			match('"');
+			// store the string
+			while(token == '"') {
+				match('"');
+			}
+
+			// append the end of string character '\0'
+			// since all the data defaults to 0, we can just move one step forward
+			data = (char *) (((int) data + sizeof(int)) & (-sizeof(int)));
+			expr_type = PTR;
+		}
+		else if (token == Sizeof) {
+			// sizeof is unary op
+			// Supported : sizeof(int), sizeof(char) and sizeof(*...)
+
+			match(Sizeof);
+			match('(');
+			expr_type = INT;
+
+			if(token == Int){ 
+				match(Int);
+			} else if  (token == Char) {
+				match(Char);
+				expr_type = CHAR;
+			}
+
+			while (token == Mul) {
+				match(Mul);
+				expr_type = expr_type + PTR;
+			}
+			match(')');
+
+			// emit code
+			
+			*++text = IMM;
+			*++text = (expr_type == CHAR) ? sizeof(char) : sizeof(int);
+
+			expr_type = INT;
+		}
+		else if (token == Id) {
+			// 1. function call
+			// 2. Enum variable
+			// 3. global / local variable
+			match(Id);
+
+			id = current_id;
+
+			if(token == '(') {
+				// function call
+				match('(');
+
+				// pass in args
+				tmp = 0; // Number of args
+				while(token != ')') {
+					expression(Assign);
+					*++text = PUSH;
+					tmp++;
+
+					if(token == ',') {
+						match(',');
+					}
+				}
+
+				match(')');
+
+				// emit code
+				if(id[Class] == Sys) {
+					// syscall
+					*++text = id[Value];
+				}
+				else if (id[Class] == Fun) {
+					// function call
+					*++text = CALL;
+					*++text = id[Value];
+				}
+				else {
+					printf("Error at line %lld : Bad function call \n", line);
+					exit(-1);
+				}
+
+				// Clean stack for args
+				if(tmp > 0) {
+					*++text = ADJ;
+					*++text = tmp;
+				}
+				expr_type = id[Type];
+			}
+			else if (id[Class] == Num) {
+				// enum
+				*++text = IMM;
+				*++text = id[Value];
+				expr_type = INT;
+			}
+			else {
+				// variable
+				if(id[Class] == Loc) {
+					*++text = LEA;
+					*++text = index_of_bp - id[Value];
+				}
+				else if (id[Class] == Glo) {
+					*++text = IMM;
+					*++text = id[Value];
+				}
+				else {
+					printf("Error at line %lld : Undefined variable\n", line);
+					exit(-1);
+				}
+
+				// emit code, default behaviour is to load the value of the address
+				// stored in ax
+				expr_type = id[Type];
+				*++text = (expr_type == Char) ? LC : LI;
+			}
+		}
+		else if (token == '(') {
+			// cast or parenthesis
+			if (token == Int || token == Char) {
+				tmp = (token == Char) ? CHAR : INT;
+				match(token);
+
+				while(token == Mul) {
+					match(Mul);
+					tmp = tmp + PTR;
+				}
+
+				match(')');
+
+				expression(Inc); // cast has precedence as Inc
+
+				expr_type = tmp;
+			}
+			else {
+				// Normal parenthesis
+				expression(Assign);
+				match(')');
+			}
+		}
+		else if (token == Mul) {
+			// pointer dereference
+			match(Mul);
+			expression(Inc); // Dereference has precedence as Inc
+
+			if (expr_type >= PTR) {
+				expr_type = expr_type - PTR;
+			} else {
+				printf("Error at line %lld : Bad pointer dereference\n", line);
+				exit(-1);
+			}
+
+			*++text = (expr_type == CHAR) ? LC : LI;
+		}
+		else if (token == And) {
+			// address of
+			match(And);
+			expression(Inc); // Address of has precedence as Inc
+
+			if(*text == LC || *text == LI) {
+				text--;
+			} else {
+				printf("Error at line %lld : Bad address of\n", line);
+				exit(-1);
+			}
+
+			expr_type += PTR;
+		}
+		else if (token == '!') {
+			// Logical NOT
+			
+			match('!');
+			expression(Inc);
+
+			// emit code, use <expr> == 0
+			*++text = PUSH;
+			*++text = IMM;
+			*++text = 0;
+			*++text = EQ;
+
+			expr_type = INT;
+		}
+		else if (token == '~') {
+			// Bitwise NOT
+			match('~');
+			expression(Inc);
+
+			// emit code, use <expr> XOR -1;
+			*++text = PUSH;
+			*++text = IMM;
+			*++text = -1;
+			*++text = XOR;
+
+			expr_type = INT;
+		}
+		else if (token == Add) {
+			// Unary plus, do nothing
+			match(Add);
+			expression(Inc);
+
+			expr_type = INT;
+		}
+		else if (token == Sub) {
+			// Unary minus
+			match(Sub);
+
+			if (token == Num) {
+				*++text = IMM;
+				*++text = -token_val;
+				match(Num);
+			} else {
+				*++text = IMM;
+				*++text = -1;
+				*++text = PUSH;
+				expression(Inc);
+				*++text = MUL;
+			}
+
+			expr_type = INT;
+		}
+		else if (token == Inc || token == Dec) {
+			tmp = token;
+			match(token);
+			expression(Inc);
+
+			if(*text == LC) {
+				*text = PUSH; // To duplicate address
+				*++text = LC;
+			} else if(*text == LI) {
+				*text = PUSH;
+				*++text = LI;
+			} else {
+				printf("Error at line %lld : Bad lvalue of pre-increment/decrement\n", line);
+				exit(-1);
+			}
+
+			*++text = PUSH;
+			*++text = IMM;
+			*++text = (expr_type > PTR) ? sizeof(int) : sizeof(char);
+			*++text = (tmp == Inc) ? ADD : SUB;
+			*++text = (expr_type == CHAR) ? SC : SI;
+		}
+		else {
+			printf("Error at line %lld : Bad expression\n", line);
+			exit(-1);
+		}
+	}
+
+	// binary operator and postfix operators
+	{
+		while (token >= level) {
+			// handle according to operator's current precedence
+
+			tmp = expr_type;
+			if(token == Assign) {
+				// var = expr
+				match(Assign);
+				if(*text == LC || *text == LI) {
+					*text = PUSH;
+				} else {
+					printf("Error at line %lld : Bad lvalue of assignment\n", line);
+					exit(-1);
+				}
+
+				expression(Assign);
+
+				expr_type = tmp;
+				*++text = (expr_type == CHAR) ? SC : SI;
+			} else if (token == Cond) {
+				// expr ? a : b
+				match(Cond);
+				*++text = JZ;
+				addr = ++text;
+
+				expression(Assign);
+				if(token == ':') {
+					match(':');
+				} else {
+					printf("Error at line %lld : Missing ':'\n", line);
+					exit(-1);
+				}
+
+				*addr = (int) (text + 3);
+				*++text = JMP;
+				addr = ++text;
+				expression(Cond);
+				*addr = (int) (text + 1);
+			} else if (token == Lor) {
+				// Logical OR
+				match(Lor);
+
+				*++text = JNZ;
+				addr = ++text;
+				expression(Lan);
+				*addr = (int) (text + 1);
+				expr_type = INT;
+			} else if (token == Lan) {
+				// Logical AND
+				match(Lan);
+
+				*++text = JZ;
+				addr = ++text;
+				expression(Or);
+				*addr = (int) (text + 1);
+				expr_type = INT;
+			}
+			else if (token == Or) {
+				// Bitwise OR
+				match(Or);
+
+				*++text = PUSH;
+				expression(Xor);
+				*++text = OR;
+				expr_type = INT;
+			}
+			else if (token == Xor) {
+				// Bitwise XOR
+				match(Xor);
+
+				*++text = PUSH;
+				expression(And);
+				*++text = XOR;
+				expr_type = INT;
+			}
+			else if (token == And) {
+				// Bitwise AND
+				match(And);
+
+				*++text = PUSH;
+				expression(Eq);
+				*++text = AND;
+				expr_type = INT;
+			}
+			else if (token == Eq) {
+				// Equality
+				match(Eq);
+
+				*++text = PUSH;
+				expression(Ne);
+				*++text = EQ;
+				expr_type = INT;
+			}
+			else if (token == Ne) {
+				// Inequality
+				match(Ne);
+
+				*++text = PUSH;
+				expression(Lt);
+				*++text = NE;
+				expr_type = INT;
+			}
+			else if (token == Lt) {
+				// Less than
+				match(Lt);
+
+				*++text = PUSH;
+				expression(Shl);
+				*++text = LT;
+				expr_type = INT;
+			}
+			else if (token == Gt) {
+				// Greater than
+				match(Gt);
+
+				*++text = PUSH;
+				expression(Shl);
+				*++text = GT;
+				expr_type = INT;
+			}
+			else if (token == Le) {
+				// Less than or equal to
+				match(Le);
+
+				*++text = PUSH;
+				expression(Shl);
+				*++text = LE;
+				expr_type = INT;
+			}
+			else if (token == Ge) {
+				// Greater than or equal to
+				match(Ge);
+
+				*++text = PUSH;
+				expression(Shl);
+				*++text = GE;
+				expr_type = INT;
+			}
+			else if (token == Shl) {
+				// Shift left
+				match(Shl);
+
+				*++text = PUSH;
+				expression(Add);
+				*++text = SHL;
+				expr_type = INT;
+			}
+			else if (token == Shr) {
+				// Shift right
+				match(Shr);
+
+				*++text = PUSH;
+				expression(Add);
+				*++text = SHR;
+				expr_type = INT;
+			}
+			else if (token == Add) {
+				// Addition - check for pointer arithmetic
+				match(Add);
+
+				*++text = PUSH;
+				expression(Mul);
+				expr_type = tmp;
+
+				if (expr_type > PTR) {
+					// Pointer type and not a char *
+					*++text = PUSH;
+					*++text = IMM;
+					*++text = sizeof(int);
+					*++text = MUL;
+				}
+				*++text = ADD;
+			}
+			else if (token == Sub) {
+				// Subtraction - check for pointer arithmetic
+				match(Sub);
+
+				*++text = PUSH;
+				expression(Mul);
+
+				if (tmp > PTR && tmp == expr_type) {
+					// Pointer Subtraction
+					*++text = SUB;
+					*++text = PUSH;
+					*++text = IMM;
+					*++text = sizeof(int);
+					*++text = DIV;
+					expr_type = INT;
+				} else if (tmp > PTR) {
+					// Pointer Movement
+					*++text = PUSH;
+					*++text = IMM;
+					*++text = sizeof(int);
+					*++text = MUL;
+					*++text = SUB;
+					expr_type = tmp;
+				} else {
+					// Numeral Subtraction
+					*++text = SUB;
+					expr_type = tmp;
+				}
+			}
+			else if (token == Mul) {
+				// Multiplication
+				match(Mul);
+
+				*++text = PUSH;
+				expression(Inc);
+				*++text = MUL;
+				expr_type = tmp;
+			}
+			else if (token == Div) {
+				// Division
+				match(Div);
+
+				*++text = PUSH;
+				expression(Inc);
+				*++text = DIV;
+				expr_type = tmp;
+			}
+			else if (token == Mod) {
+				// Modulo
+				match(Mod);
+
+				*++text = PUSH;
+				expression(Inc);
+				*++text = MOD;
+				expr_type = tmp;
+			}
+			else if (token == Inc || token == Dec) {
+				// postfix ++ and --
+				// we will increase the value to the variable and
+				// decrease it on ax to get its original value
+				if(*text == LI) {
+					*text = PUSH;
+					*++text = LI;
+				}
+				else if (*text == LC) {
+					*text = PUSH;
+					*++text = LC;
+				}
+				else {
+					printf("Error at line %lld: Bad value in increment/decrement\n", line);
+					exit(-1);
+				}
+
+				*++text = PUSH;
+				*++text = IMM;
+				*++text = (expr_type > PTR) ? sizeof(int) : sizeof(char);
+				*++text == (token == Inc) ? ADD : SUB;
+				*++text = (expr_type == CHAR) ? SC : SI;
+				*++text = PUSH;
+				*++text = IMM;
+				*++text = (expr_type > PTR) ? sizeof(int) : sizeof(char);
+				*++text = (token == Inc) ? SUB : ADD;
+				match(token);
+			}
+			else if (token == Brak) {
+				// Array Index
+				match(Brak);
+
+				*++text = PUSH;
+				expression(Assign);
+				match(']');
+
+				if(tmp > PTR) {
+					// Pointer type
+					*++text = PUSH;
+					*++text = IMM;
+					*++text = sizeof(int);
+					*++text = MUL;
+				} else if (tmp < PTR) {
+					printf("Error at line %lld : Pointer type expected \n", line);
+					exit(-1);
+				}
+
+				expr_type = tmp - PTR;
+				*++text = ADD;
+				*++text = (expr_type == CHAR) ? LC : LI;
+			}
+			else {
+				printf("Compiler Error at line %lld: Expected operator, found %lld\n", line, token);
+				exit(-1);
+			}
+		}
+	}
+}
+
 
 void statement() {
 	// There are 8 kinds of statements here:
@@ -854,6 +1418,7 @@ int eval() {
 
 int32_t main(int32_t argc, char **argv) {
 	int i, fd;
+	int *tmp;
 
 	argc--;
 	argv++;
@@ -926,5 +1491,19 @@ int32_t main(int32_t argc, char **argv) {
 	next(); idmain = current_id;       // keep track of main function
 
 	program();
+
+	if (!(pc = (int *)idmain[Value])) {
+        printf("main() not defined\n");
+        return -1;
+    }
+
+	// setup stack
+    sp = (int *)((int)stack + poolsize);
+    *--sp = EXIT; // call exit if main returns
+    *--sp = PUSH; tmp = sp;
+    *--sp = argc;
+    *--sp = (int)argv;
+    *--sp = (int)tmp;
+
 	return eval();
 }
