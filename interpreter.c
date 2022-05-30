@@ -1431,19 +1431,6 @@ int32_t main(int32_t argc, char **argv) {
 		return 1;
 	}
 
-	if(!(src = old_src = malloc(poolsize))) {
-		printf("could not malloc(%lld) for source area\n", poolsize);
-		return 1;
-	}
-
-	if((i = read(fd, src, poolsize - 1)) <= 0) {
-		printf("read() returned %lld\n", i);
-		return 1;
-	}
-
-	src[i] = 0;
-	close(fd);
-
 	// Allocate memory for text, stack, and data
 	if (!(text = old_text = malloc(poolsize))) {
 		printf("could not malloc(%lld) for text area\n", poolsize);
@@ -1459,12 +1446,16 @@ int32_t main(int32_t argc, char **argv) {
 		printf("could not malloc(%lld) for stack area\n", poolsize);
 		return 1;
 	}
+	if(!(symbols = malloc(poolsize))) {
+		printf("could not malloc(%lld) for symbols area\n", poolsize);
+		return 1;
+	}
 
 	memset(text, 0, poolsize);
 	memset(data, 0, poolsize);
 	memset(stack, 0, poolsize);
+	memset(symbols, 0, poolsize);
 
-	bp = sp = (int *) ((int) stack + poolsize);
 	ax = 0;
 
 	src = "char else enum if int return sizeof while open read close "
@@ -1489,6 +1480,20 @@ int32_t main(int32_t argc, char **argv) {
 
 	next(); current_id[Token] = Char;  // handle void type
 	next(); idmain = current_id;       // keep track of main function
+
+	if(!(src = old_src = malloc(poolsize))) {
+		printf("could not malloc(%lld) for source area\n", poolsize);
+		return 1;
+	}
+
+	// read the source file
+	if((i = read(fd, src, poolsize - 1)) <= 0) {
+		printf("read() returned %lld\n", i); // TODO read returned -1
+		return 1;
+	}
+
+	src[i] = 0;
+	close(fd);
 
 	program();
 
