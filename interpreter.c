@@ -1381,7 +1381,7 @@ int eval() {
 		// Built in Instructions
 		
 		else if (op == EXIT) {  // Exit the program
-			printf("exit(%lld)", *sp);
+			printf("exit(%lld)\n", *sp);
 			return *sp;
 		}
 		else if (op == OPEN) { // Open File
@@ -1408,7 +1408,7 @@ int eval() {
 		}
 
 		else {
-			printf("Unknown opcode: %lld\n", op);
+			printf("Unknown opcode at line %lld: %lld\n", line, op);
 			return -1;
 		}
 	}
