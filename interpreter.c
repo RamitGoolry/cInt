@@ -1265,42 +1265,52 @@ int eval() {
 		// Memory Ops
 
 		if (op == IMM) {          // Put an Immediate value into register AX
+			printf("\tIMM : ax <- %lld\n", *pc);
 			ax = *pc++;
 		}
 		else if (op == LC) {    // Load a character into AX from a memory address stored at AX
+			printf("\tLC\n");
 			ax = *(char *) ax;
 		}
 		else if (op == LI) {    // Load an int into AX from a memory address stored at AX
+			printf("\tLI : ax <- *ax(%lld)\n", *(int *) ax);
 			ax = *(int *) ax;
 		}
 		else if (op == SC) {    // Store the character held at AX to a memory address at the top of the stack
+			printf("\tSC\n");
 			*(char *)*sp++ = ax;
 		}
 		else if (op == SI) {
+			printf("\tSI : *sp <- ax(%lld)\n", ax);
 			*(int *)*sp++ = ax;
 		}
 
 		// Stack Ops
 
 		else if (op == PUSH) {  // Push the value of AX onto the stack
+			printf("\tPUSH : (%lld | %p) -> Stack @ %p\n", ax, (void *) ax, sp - 1);
 			*--sp = ax;
 		}
 
 		// Jump Ops
 
 		else if (op == JMP) {   // Jump
+			printf("\tJMP\n");
 			pc = (int *) *pc;
 		}
 		else if (op == JZ) {    // Jump if ax is zero
+			printf("\tJZ : %lld ? [%p] : [%p]\n", ax, pc + 1, (int *) *pc);
 			pc = ax ? pc + 1 : (int *)*pc;
 		}
 		else if (op == JNZ) {   // Jump if ax is not zero
+			printf("\tJNZ\n");
 			pc = ax ? (int *)*pc : pc + 1;
 		}
 
 		// Function call related Ops
 
 		else if (op == CALL) {  // Call a subroutine
+			printf("\tCALL\n");
 			*--sp = (int) pc + 1;
 			pc = (int *) *pc;
 		}
@@ -1310,71 +1320,91 @@ int eval() {
 		else if (op == ENT) { // Make a new stack frame
 			// Will store the current PC value onto the stack, and
 			// save some space <size> bytes for local variables
+			printf("\tENT\n");
 			*--sp = (int) bp;
 			bp = sp;
 			sp -= *pc++;
 		}
 		else if (op == ADJ) { // Adjust the stack pointer
+			printf("\tADJ\n");
 			// Remove arguments from frame
 			sp += *pc++;
 		}
 		else if (op == LEV) { // Restore call frame and PC
+			printf("\tLEV\n");
 			sp = bp;
 			bp = (int *) *sp++; // Base pointer stored on stack
 			pc = (int *) *sp++; // Program counter stored on stack
 		}
 		else if (op == LEA) { // Load effective address
+			printf("\tLEA : ax <- bp(%lld) + *pc(%lld)[%p]\n", (long long) bp, *pc, pc);
 			ax = (int) (bp + *pc++);
 		}
 
 		// Math Ops
 
 		else if (op == OR) {
+			printf("\tOR\n");
 			ax = *sp++ | ax;
 		}
 		else if (op == XOR) {
+			printf("\tXOR\n");
 			ax = *sp++ * ax;
 		}
 		else if (op == AND) {
+			printf("\tAND\n");
 			ax = *sp++ & ax;
 		}
 		else if (op == EQ) {
+			printf("\tEQ\n");
 			ax = *sp++ == ax;
 		}
 		else if (op == NE) {
+			printf("\tNE\n");
 			ax = *sp++ != ax;
 		}
 		else if (op == LT) {
+			printf("\tLT\n");
 			ax = *sp++ < ax;
 		}
 		else if (op == GT) {
+			printf("\tGT : %lld > %lld\n", *sp, ax);
 			ax = *sp++ > ax;
 		}
-		else if (op == LE) { 
+		else if (op == LE) {
+			printf("\tLE\n");
 			ax = *sp++ <= ax;
 		}
 		else if (op == GE) {
+			printf("\tGE\n");
 			ax = *sp++ >= ax;
 		}
 		else if (op == SHL) {
+			printf("\tSHL\n");
 			ax = *sp++ << ax;
 		}
 		else if (op == SHR) {
+			printf("\tSHR\n");
 			ax = *sp++ >> ax;
 		}
 		else if (op == ADD) {
+			printf("\tADD : %lld + %lld = %lld\n", *sp, ax, *sp + ax);
 			ax = *sp++ + ax;
 		}
 		else if (op == SUB) {
+			printf("\tSUB\n");
 			ax = *sp++ - ax;
 		}
 		else if (op == MUL) {
+			printf("\tMUL : %lld * %lld = %lld\n", *sp, ax, *sp * ax);
 			ax = *sp++ * ax;
 		}
 		else if (op == DIV) {
+			printf("\tDIV\n");
 			ax = *sp++ / ax;
 		}
 		else if (op == MOD) {
+			printf("\tMOD\n");
 			ax = *sp++ % ax;
 		}
 
@@ -1385,30 +1415,37 @@ int eval() {
 			return *sp;
 		}
 		else if (op == OPEN) { // Open File
+			printf("\tOPEN\n");
 			ax = open((char *) sp[1], sp[0]);
 		}
 		else if (op == CLOS) { // Close file
+			printf("\tCLOS\n");
 			ax = close(sp[0]);
 		}
 		else if (op == READ) { // Read from file
+			printf("\tREAD\n");
 			ax = read(sp[2], (char *) sp[1], sp[0]);
 		}
 		else if (op == PRTF) { // Printf
+			printf("\tPRTF\n");
 			tmp = sp + pc[1];
 			ax = printf((char *) tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]);
 		}
 		else if (op == MALC) { // Malloc
+			printf("\tMALC\n");
 			ax = (int) malloc(*sp);
 		}
 		else if (op == MSET) { // Memset
+			printf("\tMSET\n");
 			ax = (int) memset((char *) sp[2], sp[1], sp[0]);
 		}
 		else if (op == MCMP) { // Memcmp
+			printf("\tMCMP\n");
 			ax = memcmp((char *) sp[2], (char *) sp[1], sp[0]);
 		}
 
 		else {
-			printf("Unknown opcode at line %lld: %lld\n", line, op);
+			printf("Unknown opcode: %lld\n", op);
 			return -1;
 		}
 	}
