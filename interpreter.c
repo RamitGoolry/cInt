@@ -1333,10 +1333,13 @@ int eval() {
 			sp += *pc++;
 		}
 		else if (op == LEV) { // Restore call frame and PC
-			printf("\tLEV\n");
+			printf("\tLEV : Setting sp <- bp[%p]\n", bp);
 			sp = bp;
+			printf("\t    : Setting bp <- *sp(%lld)++\n", *sp);
 			bp = (int *) *sp++; // Base pointer stored on stack
+			printf("\t    : Setting pc <- *sp(%lld)++\n", *sp);
 			pc = (int *) *sp++; // Program counter stored on stack
+			printf("\t    * New value at PC[%p] = %lld\n", pc, *pc);
 		}
 		else if (op == LEA) { // Load effective address
 			printf("\tLEA : ax <- bp(%lld) + *pc(%lld)[%p]\n", (long long) bp, *pc, pc);
