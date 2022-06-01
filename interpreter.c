@@ -1265,7 +1265,7 @@ int eval() {
 		// Memory Ops
 
 		if (op == IMM) {          // Put an Immediate value into register AX
-			printf("\tIMM : ax <- %lld\n", *pc);
+			printf("\tIMM : ax <- (%lld | %p)\n", *pc, (void *) *pc);
 			ax = *pc++;
 		}
 		else if (op == LC) {    // Load a character into AX from a memory address stored at AX
@@ -1320,13 +1320,15 @@ int eval() {
 		else if (op == ENT) { // Make a new stack frame
 			// Will store the current PC value onto the stack, and
 			// save some space <size> bytes for local variables
-			printf("\tENT\n");
+			printf("\tENT : Pushing bp[%p]\n", bp);
 			*--sp = (int) bp;
+			printf("\t    : sp <- bp[%p]\n", bp);
 			bp = sp;
+			printf("\t    : Storing pc[%p](%lld)\n", pc, *pc);
 			sp -= *pc++;
 		}
 		else if (op == ADJ) { // Adjust the stack pointer
-			printf("\tADJ\n");
+			printf("\tADJ : sp += pc(%lld) = [%p]\n", *pc, sp + *pc);
 			// Remove arguments from frame
 			sp += *pc++;
 		}
