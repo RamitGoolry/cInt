@@ -9,7 +9,7 @@
 
 #define int long long
 
-int debug = 0;
+int debug = 1;
 
 int token;
 char *src, *old_src;
@@ -60,7 +60,7 @@ void next() {
 	while ((token = *src)) {
 		++src;
 		// parse token
-	
+
 		if(token == ' ' || token == '\t'); // Skip whitespaces
 		else if(token == '\n') {           // New line
 			line++;
@@ -70,10 +70,10 @@ void next() {
 			while(*src != 0 && *src != '\n')
 				++src;
 		}
-		else if((token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z') || 
+		else if((token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z') ||
 			(token == '_')) {
 			// Identifier
-			
+	
 			last_pos = src - 1;
 			hash = token;
 
@@ -103,7 +103,7 @@ void next() {
 		}
 		else if(token >= '0' && token <= '9') {
 			// Numeric literal
-			
+		
 			token_val = token - '0';
 
 			if(token_val > 0) { // Decimal
