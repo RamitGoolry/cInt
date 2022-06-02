@@ -17,7 +17,7 @@ int try() {
 int main() {
 	printf("Hello, world!\n");
 	printf("9 + 10 = %d\n", 9 + 10);
-	// printf("factorial(3) = %d\n", factorial(3));
+	//printf("factorial(3) = %d\n", factorial(3));*/
 	printf("try() = %d\n", try());
 	return 0;
 }
