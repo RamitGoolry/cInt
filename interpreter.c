@@ -1283,7 +1283,7 @@ int eval() {
 			*(char *)*sp++ = ax;
 		}
 		else if (op == SI) {
-			if(debug) printf("\tSI : *sp <- ax(%lld)\n", ax);
+			if(debug) printf("\tSI : *sp[%p] <- ax(%lld)\n", sp, ax);
 			*(int *)*sp++ = ax;
 		}
 
@@ -1345,7 +1345,7 @@ int eval() {
 			if(debug) printf("\t    * New value at PC[%p] = (%lld | 0x%llx)\n", pc, *pc, *pc);
 		}
 		else if (op == LEA) { // Load effective address
-			if(debug) printf("\tLEA : ax <- bp(%lld) + *pc(%lld)[%p]\n", (long long) bp, *pc, pc);
+			if(debug) printf("\tLEA : ax <- bp(%lld) + *pc(%lld)[%p] = (%lld | 0x%llx)\n", (long long) bp, *pc, pc, (int) (bp + *pc), (int) (bp + *pc));
 			ax = (int) (bp + *pc++);
 		}
 
@@ -1453,7 +1453,7 @@ int eval() {
 		}
 
 		else {
-			printf("Unknown opcode: %lld\n", op);
+			printf("Unknown opcode: %lld | 0x%llx\n", op, op);
 			return -1;
 		}
 	}
