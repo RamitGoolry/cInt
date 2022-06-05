@@ -2,7 +2,7 @@
 
 int try() {
 	 int i;
-	 i = 0;
+	 i = 7;
 
 	 while (i < 10) {
 		 i = i + 1;
@@ -12,8 +12,6 @@ int try() {
 }
 
 int main() {
-	printf("Hello, world!\n");
-	printf("9 + 10 = %d\n", 9 + 10);
 	printf("try() = %d\n", try());
 	return 0;
 }
