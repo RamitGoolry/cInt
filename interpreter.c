@@ -1352,47 +1352,47 @@ int eval() {
 		// Math Ops
 
 		else if (op == OR) {
-			if(debug) printf("\tOR\n");
+			if(debug) printf("\tOR : %lld | %lld = %lld\n", *sp, ax, *sp | ax);
 			ax = *sp++ | ax;
 		}
 		else if (op == XOR) {
-			if(debug) printf("\tXOR\n");
+			if(debug) printf("\tXOR : %lld ^ %lld = %lld\n", *sp, ax, *sp ^ ax);
 			ax = *sp++ * ax;
 		}
 		else if (op == AND) {
-			if(debug) printf("\tAND\n");
+			if(debug) printf("\tAND : %lld & %lld = %lld\n", *sp, ax, *sp & ax);
 			ax = *sp++ & ax;
 		}
 		else if (op == EQ) {
-			if(debug) printf("\tEQ\n");
+			if(debug) printf("\tEQ : %lld == %lld = %d\n", *sp, ax, *sp == ax);
 			ax = *sp++ == ax;
 		}
 		else if (op == NE) {
-			if(debug) printf("\tNE\n");
+			if(debug) printf("\tNE : %lld != %lld = %d\n", *sp, ax, *sp != ax);
 			ax = *sp++ != ax;
 		}
 		else if (op == LT) {
-			if(debug) printf("\tLT\n");
+			if(debug) printf("\tLT : %lld < %lld = %d\n", *sp, ax, *sp < ax);
 			ax = *sp++ < ax;
 		}
 		else if (op == GT) {
-			if(debug) printf("\tGT : %lld > %lld\n", *sp, ax);
+			if(debug) printf("\tGT : %lld > %lld = %d\n", *sp, ax, *sp > ax);
 			ax = *sp++ > ax;
 		}
 		else if (op == LE) {
-			if(debug) printf("\tLE\n");
+			if(debug) printf("\tLE : %lld <= %lld = %d\n", *sp, ax, *sp <= ax);
 			ax = *sp++ <= ax;
 		}
 		else if (op == GE) {
-			if(debug) printf("\tGE\n");
+			if(debug) printf("\tGE : %lld >= %lld = %d\n", *sp, ax, *sp >= ax);
 			ax = *sp++ >= ax;
 		}
 		else if (op == SHL) {
-			if(debug) printf("\tSHL\n");
+			if(debug) printf("\tSHL : %lld << %lld = %lld\n", *sp, ax, *sp << ax);
 			ax = *sp++ << ax;
 		}
 		else if (op == SHR) {
-			if(debug) printf("\tSHR\n");
+			if(debug) printf("\tSHR : %lld >> %lld = %lld\n", *sp, ax, *sp >> ax);
 			ax = *sp++ >> ax;
 		}
 		else if (op == ADD) {
@@ -1400,7 +1400,7 @@ int eval() {
 			ax = *sp++ + ax;
 		}
 		else if (op == SUB) {
-			if(debug) printf("\tSUB\n");
+			if(debug) printf("\tSUB : %lld - %lld = %lld\n", *sp, ax, *sp - ax);
 			ax = *sp++ - ax;
 		}
 		else if (op == MUL) {
@@ -1408,11 +1408,11 @@ int eval() {
 			ax = *sp++ * ax;
 		}
 		else if (op == DIV) {
-			if(debug) printf("\tDIV\n");
+			if(debug) printf("\tDIV : %lld / %lld = %lld\n", *sp, ax, *sp / ax);
 			ax = *sp++ / ax;
 		}
 		else if (op == MOD) {
-			if(debug) printf("\tMOD\n");
+			if(debug) printf("\tMOD : %lld mod %lld = %lld\n", *sp, ax, *sp % ax);
 			ax = *sp++ % ax;
 		}
 
