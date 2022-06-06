@@ -9,7 +9,7 @@
 
 #define int long long
 
-int debug = 1;
+int debug = 0;
 
 int token;
 char *src, *old_src;
@@ -1262,6 +1262,7 @@ int eval() {
 	int op, *tmp;
 
 	while(1) {
+		if (debug) printf("\t\top = PC[%p]: (%lld | 0x%llx)\n", pc, *pc, *pc);
 		op = *pc++;
 
 		// Memory Ops

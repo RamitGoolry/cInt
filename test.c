@@ -1,14 +1,15 @@
 #include <stdio.h>
 
 int try() {
-	 int i;
-	 i = 7;
+	int i;
+	i = 7;
 
-	 while (i < 10) {
-		 i = i + 1;
-	 }
+	while (i < 10) {
+		printf("i = %d\n", i);
+		i = i + 1;
+	}
 
-	 return i;
+	return i;
 }
 
 int main() {
