@@ -9,7 +9,7 @@
 
 #define int long long
 
-int debug = 0;
+int debug = 1;
 
 int token;
 char *src, *old_src;
@@ -653,7 +653,8 @@ void expression(int level) {
 
 				expr_type = tmp;
 				*++text = (expr_type == CHAR) ? SC : SI;
-			} else if (token == Cond) {
+			} 
+			else if (token == Cond) {
 				// expr ? a : b
 				match(Cond);
 				*++text = JZ;
@@ -672,7 +673,8 @@ void expression(int level) {
 				addr = ++text;
 				expression(Cond);
 				*addr = (int) (text + 1);
-			} else if (token == Lor) {
+			} 
+			else if (token == Lor) {
 				// Logical OR
 				match(Lor);
 
@@ -681,7 +683,8 @@ void expression(int level) {
 				expression(Lan);
 				*addr = (int) (text + 1);
 				expr_type = INT;
-			} else if (token == Lan) {
+			} 
+			else if (token == Lan) {
 				// Logical AND
 				match(Lan);
 
@@ -1262,13 +1265,13 @@ int eval() {
 	int op, *tmp;
 
 	while(1) {
-		if (debug) printf("\t\top = PC[%p]: (%lld | 0x%llx)\n", pc, *pc, *pc);
+		if (debug) printf("\t\top = PC[%p]: (0x%llx)\n", pc, *pc);
 		op = *pc++;
 
 		// Memory Ops
 
 		if (op == IMM) {          // Put an Immediate value into register AX
-			if(debug) printf("\tIMM : ax <- (%lld | %p)\n", *pc, (void *) *pc);
+			if(debug) printf("\tIMM : ax <- *pc[%p](0x%llx)++\n", pc, *pc);
 			ax = *pc++;
 		}
 		else if (op == LC) {    // Load a character into AX from a memory address stored at AX
@@ -1276,15 +1279,15 @@ int eval() {
 			ax = *(char *) ax;
 		}
 		else if (op == LI) {    // Load an int into AX from a memory address stored at AX
-			if(debug) printf("\tLI : ax <- *ax(%lld)\n", *(int *) ax);
+			if(debug) printf("\tLI : ax <- *ax[%p](0x%llx)\n", (void *) ax, *(int *) ax);
 			ax = *(int *) ax;
 		}
 		else if (op == SC) {    // Store the character held at AX to a memory address at the top of the stack
 			if(debug) printf("\tSC\n");
-			*(char *)*sp++ = ax;
+			ax = *(char *)*sp++ = ax;
 		}
 		else if (op == SI) {
-			if(debug) printf("\tSI : *sp[%p] <- ax(%lld)\n", sp, ax);
+			if(debug) printf("\tSI : *(*sp[%p])[%p] <- ax(0x%llx)\n", sp, (void *) *sp, ax);
 			*(int *)*sp++ = ax;
 		}
 
@@ -1326,7 +1329,7 @@ int eval() {
 			// save some space <size> bytes for local variables
 			if(debug) printf("\tENT : *--sp[%p] = bp[%p]\n", sp - 1, bp);
 			*--sp = (int) bp;
-			if(debug) printf("\t    : sp <- bp[%p]\n", bp);
+			if(debug) printf("\t    : bp <- sp[%p]\n", bp);
 			bp = sp;
 			if(debug) printf("\t    : sp[%p] -= *pc[%p](%lld) = [%p]\n", sp, pc, *pc, sp - *pc);
 			sp = sp - *pc++;
@@ -1334,7 +1337,7 @@ int eval() {
 		else if (op == ADJ) { // Adjust the stack pointer
 			if(debug) printf("\tADJ : sp += pc(%lld) = [%p]\n", *pc, sp + *pc);
 			// Remove arguments from frame
-			sp += *pc++;
+			sp = sp + *pc++;
 		}
 		else if (op == LEV) { // Restore call frame and PC
 			if(debug) printf("\tLEV : Setting sp <- bp[%p]\n", bp);
