@@ -9,7 +9,7 @@
 
 #define int long long
 
-int debug = 1;
+int debug = 0;
 
 int token;
 char *src, *old_src;
@@ -995,7 +995,7 @@ void statement() {
 		statement();           // Parse statement
 
 		*++text = JMP;
-		*text  = (int) a;
+		*++text  = (int) a;
 		*b = (int) (text + 1);
 	}
 	else if (token == '{') {
@@ -1119,7 +1119,7 @@ void function_body() {
 			match(Id);
 
 			// Store the local variable
-			
+
 			current_id[BClass] = current_id[Class];
 			current_id[Class] = Loc;
 
@@ -1150,7 +1150,7 @@ void function_body() {
 }
 
 void function_declaration() {
-	// type func_name (...) {...}
+	// type func_name (...) 
 	
 	match('(');
 	function_parameter();
