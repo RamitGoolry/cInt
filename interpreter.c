@@ -9,11 +9,11 @@
 
 #define int long long
 
-int debug = 0;
+int debug;
 
 int token;
 char *src, *old_src;
-long long poolsize;
+int poolsize;
 int line;
 
 int *text,      // Text segment
@@ -56,6 +56,8 @@ int index_of_bp;
 void next() {
 	char* last_pos;
 	int hash;
+
+	debug = 0;
 
 	while ((token = *src)) {
 		++src;

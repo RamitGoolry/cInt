@@ -1,18 +1,18 @@
 #include <stdio.h>
 
-int try() {
-	int i;
-	i = 7;
-
-	while (i < 10) {
-		printf("i = %d\n", i);
-		i = i + 1;
+int fibb(int n) {
+	if (n == 0) {
+		return 0;
+	} else if (n == 1) {
+		return 1;
+	} else {
+		return fibb(n - 1) + fibb(n - 2);
 	}
-
-	return i;
 }
 
 int main() {
-	printf("try() = %d\n", try());
+
+	printf("%d\n", fibb(10));
+
 	return 0;
 }
