@@ -11,8 +11,7 @@ int fibb(int n) {
 }
 
 int main() {
-
-	printf("%d\n", fibb(10));
+	printf("fibonacci(20) = %d\n", fibb(20));
 
 	return 0;
 }

@@ -9,7 +9,7 @@
 
 #define int long long
 
-int debug;
+int debug = 0;
 
 int token;
 char *src, *old_src;
@@ -56,8 +56,6 @@ int index_of_bp;
 void next() {
 	char* last_pos;
 	int hash;
-
-	debug = 0;
 
 	while ((token = *src)) {
 		++src;
@@ -1267,7 +1265,6 @@ int eval() {
 	int op, *tmp;
 
 	while(1) {
-		if (debug) printf("\t\top = PC[%p]: (0x%llx)\n", pc, *pc);
 		op = *pc++;
 
 		// Memory Ops
